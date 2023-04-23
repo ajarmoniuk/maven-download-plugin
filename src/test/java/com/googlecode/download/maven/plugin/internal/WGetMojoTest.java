@@ -1,5 +1,6 @@
 package com.googlecode.download.maven.plugin.internal;
 
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.googlecode.download.maven.plugin.internal.cache.FileBackedIndexCacheFactory;
 import org.apache.http.*;
 import org.apache.http.conn.routing.HttpRoute;
@@ -58,6 +59,8 @@ import static org.mockito.Mockito.*;
  * @author Andrzej Jarmoniuk
  */
 public class WGetMojoTest {
+    @Rule
+    public WireMockRule wireMock = new WireMockRule(options().dynamicPort());
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
     private Path cacheDirectory;
