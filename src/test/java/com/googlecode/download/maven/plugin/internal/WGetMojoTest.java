@@ -16,6 +16,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.logging.SystemStreamLog;
+import org.codehaus.plexus.archiver.manager.ArchiverManager;
 import org.codehaus.plexus.util.ReflectionUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.junit.After;
@@ -23,7 +24,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
@@ -44,6 +44,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -91,10 +93,10 @@ public class WGetMojoTest {
     }
 
     private WGetMojo createMojo(Consumer<WGetMojo> initializer) {
-        WGetMojo mojo = new WGetMojo();
         BuildContext buildContext = mock(BuildContext.class);
         doNothing().when(buildContext).refresh(any(File.class));
 
+        WGetMojo mojo = new WGetMojo(buildContext, mock(ArchiverManager.class), CACHE_FACTORY);
         setVariableValueToObject(mojo, "outputFileName", OUTPUT_FILE_NAME);
         setVariableValueToObject(mojo, "outputDirectory", outputDirectory.toFile());
         setVariableValueToObject(mojo, "cacheDirectory", cacheDirectory.toFile());

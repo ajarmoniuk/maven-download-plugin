@@ -231,18 +231,10 @@ public class WGetMojo extends AbstractMojo {
     @Parameter(property = "session", readonly = true)
     private MavenSession session;
 
-    @Inject
     private ArchiverManager archiverManager;
 
-    /**
-     * For transfers
-     */
-
-    @Inject
     private BuildContext buildContext;
 
-    @Inject
-    @Named("fileBackedIndex")
     private CacheFactory cacheFactory;
 
 
@@ -279,6 +271,19 @@ public class WGetMojo extends AbstractMojo {
      */
     @Parameter(property = "preemptiveAuth", defaultValue = "false")
     private boolean preemptiveAuth;
+
+    /**
+     * Creates a new intance; typically called by the dependency injection framework.
+     * @param buildContext injected instance of {@link BuildContext}
+     * @param archiverManager injected instance of {@link ArchiverManager}
+     * @param cacheFactory injected instance of {@link CacheFactory}
+     */
+    @Inject
+    public WGetMojo(BuildContext buildContext,
+                    ArchiverManager archiverManager,
+                    @Named("fileBackedIndex") CacheFactory cacheFactory) {
+
+    }
 
     /**
      * Method call when the mojo is executed for the first time.
