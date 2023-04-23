@@ -1,5 +1,6 @@
 package com.googlecode.download.maven.plugin.internal;
 
+import com.googlecode.download.maven.plugin.internal.cache.FileBackedIndexCacheFactory;
 import org.apache.http.*;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.entity.StringEntity;
@@ -50,12 +51,13 @@ import static org.mockito.Mockito.*;
  *
  * @author Andrzej Jarmoniuk
  */
-public class WGetTest {
+public class WGetMojoTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
     private Path cacheDirectory;
     private final static String OUTPUT_FILE_NAME = "output-file";
     private Path outputDirectory;
+    private final static CacheFactory CACHE_FACTORY = new FileBackedIndexCacheFactory();
 
     @Before
     public void setUp() throws Exception {
@@ -90,6 +92,7 @@ public class WGetTest {
         setVariableValueToObject(mojo, "retries", 1);
         setVariableValueToObject(mojo, "buildContext", buildContext);
         setVariableValueToObject(mojo, "overwrite", true);
+        setVariableValueToObject(mojo, "cacheFactory", CACHE_FACTORY);
         try {
             setVariableValueToObject(mojo, "uri", new URI(
                     "http://test"));

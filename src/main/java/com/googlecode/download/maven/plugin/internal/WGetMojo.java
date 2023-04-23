@@ -39,6 +39,7 @@ import org.eclipse.aether.repository.RemoteRepository;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -239,6 +240,11 @@ public class WGetMojo extends AbstractMojo {
 
     @Inject
     private BuildContext buildContext;
+
+    @Inject
+    @Named("fileBackedIndex")
+    private CacheFactory cacheFactory;
+
 
     /**
      * Runs the plugin only if the current project is the execution root.
@@ -481,6 +487,7 @@ public class WGetMojo extends AbstractMojo {
         }
 
         final HttpFileRequester fileRequester = fileRequesterBuilder
+                .withCacheFactory(this.cacheFactory)
                 .withProgressReport(this.session.getSettings().isInteractiveMode()
                         ? new LoggingProgressReport(this.getLog())
                         : new SilentProgressReport(this.getLog()))

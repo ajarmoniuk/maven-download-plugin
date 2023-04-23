@@ -1,6 +1,7 @@
 package com.googlecode.download.maven.plugin.internal;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.googlecode.download.maven.plugin.internal.cache.FileBackedIndexCacheFactory;
 import org.apache.http.auth.AUTH;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
@@ -37,6 +38,7 @@ public class HttpFileRequesterTest {
     private File outputFile;
     private final static Log LOG = new SystemStreamLog();
     private final static String OUTPUT_FILE_NAME = "output-file";
+    private final static CacheFactory CACHE_FACTORY = new FileBackedIndexCacheFactory();
 
     @Before
     public void setUp() throws Exception {
@@ -52,6 +54,7 @@ public class HttpFileRequesterTest {
         }
 
         return new HttpFileRequester.Builder()
+                .withCacheFactory(CACHE_FACTORY)
                 .withProgressReport(new LoggingProgressReport(LOG))
                 .withConnectTimeout(3000)
                 .withSocketTimeout(3000)
@@ -74,6 +77,7 @@ public class HttpFileRequesterTest {
                 .willReturn(ok().withBody("Hello, world!")));
 
         createFileRequesterBuilder()
+                .withCacheFactory(CACHE_FACTORY)
                 .build()
                 .download(this.outputFile, emptyList());
 
@@ -96,6 +100,7 @@ public class HttpFileRequesterTest {
                 .willReturn(ok().withBody("Hello, world!")));
 
         createFileRequesterBuilder()
+                .withCacheFactory(CACHE_FACTORY)
                 .withUsername("billg")
                 .withPassword("hunter2")
                 .build()
@@ -117,6 +122,7 @@ public class HttpFileRequesterTest {
                 .willReturn(ok().withBody("Hello, world!")));
 
         createFileRequesterBuilder()
+                .withCacheFactory(CACHE_FACTORY)
                 .withUsername("billg")
                 .withPassword("hunter2")
                 .withPreemptiveAuth(true)

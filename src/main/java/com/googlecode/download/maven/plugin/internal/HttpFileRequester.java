@@ -15,8 +15,6 @@
  */
 package com.googlecode.download.maven.plugin.internal;
 
-import com.googlecode.download.maven.plugin.internal.cache.FileBackedIndex;
-import com.googlecode.download.maven.plugin.internal.cache.FileIndexResourceFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -63,7 +61,6 @@ import static org.apache.maven.shared.utils.StringUtils.isNotBlank;
  */
 public class HttpFileRequester {
     public static final int HEURISTIC_DEFAULT_LIFETIME = 364 * 3600 * 24;
-
     private ProgressReport progressReport;
     private int connectTimeout;
     private int socketTimeout;
@@ -74,6 +71,7 @@ public class HttpFileRequester {
     private boolean redirectsEnabled;
     private URI uri;
     private boolean preemptiveAuth;
+    private CacheFactory cacheFactory;
 
     private HttpFileRequester() {
     }
@@ -97,6 +95,11 @@ public class HttpFileRequester {
         private boolean redirectsEnabled;
         private MavenSession mavenSession;
         private boolean preemptiveAuth;
+        private CacheFactory cacheFactory;
+        public Builder withCacheFactory(CacheFactory cacheFactory) {
+            this.cacheFactory = cacheFactory;
+            return this;
+        }
 
         public Builder withUri(URI uri) {
             this.uri = uri;
@@ -198,8 +201,10 @@ public class HttpFileRequester {
             instance.redirectsEnabled = this.redirectsEnabled;
             instance.preemptiveAuth = this.preemptiveAuth;
             instance.log = requireNonNull(this.log);
+            instance.cacheFactory = this.cacheFactory;
 
             requireNonNull(this.mavenSession);
+            requireNonNull(this.cacheFactory);
 
             instance.credentialsProvider = new BasicCredentialsProvider();
             if (isNotBlank(this.serverId)) {
@@ -337,8 +342,8 @@ public class HttpFileRequester {
             httpClientBuilder
                     .setCacheDir(this.cacheDir)
                     .setCacheConfig(config)
-                    .setResourceFactory(new FileIndexResourceFactory(this.cacheDir.toPath()))
-                    .setHttpCacheStorage(new FileBackedIndex(this.cacheDir.toPath(), this.log))
+                    .setResourceFactory(cacheFactory.getResourceFactory(this.cacheDir.toPath()))
+                    .setHttpCacheStorage(cacheFactory.getHttpCacheStorage(this.cacheDir.toPath(), this.log))
                     .setDeleteCache(false);
         }
 
