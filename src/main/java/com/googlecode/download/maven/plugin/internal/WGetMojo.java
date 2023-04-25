@@ -282,7 +282,9 @@ public class WGetMojo extends AbstractMojo {
     public WGetMojo(BuildContext buildContext,
                     ArchiverManager archiverManager,
                     @Named("fileBackedIndex") CacheFactory cacheFactory) {
-
+        this.buildContext = buildContext;
+        this.archiverManager = archiverManager;
+        this.cacheFactory = cacheFactory;
     }
 
     /**
