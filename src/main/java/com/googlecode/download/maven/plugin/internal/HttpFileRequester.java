@@ -15,6 +15,7 @@
  */
 package com.googlecode.download.maven.plugin.internal;
 
+import com.googlecode.download.maven.plugin.internal.cache.FileIndexResourceFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -342,7 +343,7 @@ public class HttpFileRequester {
             httpClientBuilder
                     .setCacheDir(this.cacheDir)
                     .setCacheConfig(config)
-                    .setResourceFactory(cacheFactory.getResourceFactory(this.cacheDir.toPath()))
+                    .setResourceFactory(new FileIndexResourceFactory(this.cacheDir.toPath()))
                     .setHttpCacheStorage(cacheFactory.getHttpCacheStorage(this.cacheDir.toPath(), this.log))
                     .setDeleteCache(false);
         }

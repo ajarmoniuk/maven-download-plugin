@@ -1,5 +1,6 @@
-package com.googlecode.download.maven.plugin.internal.cache;
+package com.googlecode.download.maven.plugin.internal.cache.filebackedindex;
 
+import com.googlecode.download.maven.plugin.internal.cache.filebackedindex.FileBackedIndex;
 import org.junit.Test;
 
 import java.net.URI;

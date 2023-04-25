@@ -1,5 +1,7 @@
-package com.googlecode.download.maven.plugin.internal.cache;
+package com.googlecode.download.maven.plugin.internal.cache.filebackedindex;
 
+import com.googlecode.download.maven.plugin.internal.cache.FileIndexResource;
+import com.googlecode.download.maven.plugin.internal.cache.IncompatibleIndexException;
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.StatusLine;

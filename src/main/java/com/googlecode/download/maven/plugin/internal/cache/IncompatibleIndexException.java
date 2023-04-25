@@ -6,8 +6,8 @@ package com.googlecode.download.maven.plugin.internal.cache;
  * This occurs when upgrading to a new version of the plugin with breaking changes in the index storage strategy
  * (including Java serialization changes, or even moving to a different serialization mechanism (JSON, XML, etc.).
  */
-class IncompatibleIndexException extends RuntimeException {
-    IncompatibleIndexException(Exception cause) {
+public class IncompatibleIndexException extends RuntimeException {
+    public IncompatibleIndexException(Exception cause) {
         super(cause);
     }
 }

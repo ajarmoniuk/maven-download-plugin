@@ -21,7 +21,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
  * Generates {@link Resource} instances whose body is stored in a temporary file.
  */
 @Contract(threading = ThreadingBehavior.IMMUTABLE)
-public class FileIndexResourceFactory implements ResourceFactory {
+public final class FileIndexResourceFactory implements ResourceFactory {
 
     private static final Pattern DOMAIN_REGEX = Pattern.compile("^(?:\\{[^}]*})?(?:[^/]*//)?(?:[^@]+@)?([^/:]+)");
     private final Path cacheDir;

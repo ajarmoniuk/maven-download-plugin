@@ -1,7 +1,7 @@
 package com.googlecode.download.maven.plugin.internal;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.googlecode.download.maven.plugin.internal.cache.FileBackedIndexCacheFactory;
+import com.googlecode.download.maven.plugin.internal.cache.filebackedindex.FileBackedIndexCacheFactory;
 import org.apache.http.auth.AUTH;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;

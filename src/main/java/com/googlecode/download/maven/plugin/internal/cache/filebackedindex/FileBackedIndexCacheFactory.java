@@ -1,8 +1,7 @@
-package com.googlecode.download.maven.plugin.internal.cache;
+package com.googlecode.download.maven.plugin.internal.cache.filebackedindex;
 
 import com.googlecode.download.maven.plugin.internal.CacheFactory;
 import org.apache.http.client.cache.HttpCacheStorage;
-import org.apache.http.client.cache.ResourceFactory;
 import org.apache.maven.plugin.logging.Log;
 
 import javax.inject.Named;
@@ -16,10 +15,6 @@ import java.nio.file.Path;
 @Singleton
 @Named("fileBackedIndex")
 public final class FileBackedIndexCacheFactory implements CacheFactory {
-    @Override
-    public ResourceFactory getResourceFactory(Path cacheDir) {
-        return new FileIndexResourceFactory(cacheDir);
-    }
 
     @Override
     public HttpCacheStorage getHttpCacheStorage(Path cacheDir, Log log) throws NotDirectoryException {
