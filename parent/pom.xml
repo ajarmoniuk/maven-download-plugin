@@ -13,7 +13,7 @@
     </parent>
 
     <groupId>com.googlecode.maven-download-plugin</groupId>
-    <artifactId>download-parent</artifactId>
+    <artifactId>parent</artifactId>
     <version>1.6.9-SNAPSHOT</version>
     <packaging>pom</packaging>
 
