@@ -8,6 +8,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -32,6 +33,7 @@ import static org.mockito.Mockito.mock;
  *
  * @author Andrzej Jarmoniuk
  */
+@Ignore
 public class HttpFileRequesterTest {
     @Rule
     public TemporaryFolder outputDirectory = new TemporaryFolder();

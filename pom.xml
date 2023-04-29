@@ -10,13 +10,7 @@
     </parent>
 
     <artifactId>download-maven-plugin</artifactId>
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>parent</module>
-        <module>cache-filebackedindex</module>
-        <module>common</module>
-    </modules>
+    <packaging>maven-plugin</packaging>
 
     <name>Download Plugin for Maven</name>
 
@@ -88,7 +82,7 @@
 
     <!-- Build plugins and extensions -->
     <build>
-        <plugins>
+       <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>

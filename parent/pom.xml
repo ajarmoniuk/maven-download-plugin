@@ -17,6 +17,12 @@
     <version>1.6.9-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <modules>
+        <module>download-maven-plugin</module>
+        <module>cache-filebackedindex</module>
+        <module>common</module>
+    </modules>
+
     <properties>
         <maven.version>3.2.5</maven.version>
         <httpclient.version>4.5.13</httpclient.version>
