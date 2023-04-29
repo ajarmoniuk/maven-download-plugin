@@ -4,33 +4,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- See https://docs.sonatype.org/display/Repository/Sonatype+OSS+Maven+Repository+Usage+Guide -->
-    <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>9</version>
-        <relativePath/>
-    </parent>
-
     <groupId>com.googlecode.maven-download-plugin</groupId>
     <artifactId>parent</artifactId>
     <version>1.6.9-SNAPSHOT</version>
     <packaging>pom</packaging>
-
-    <modules>
-        <module>download-maven-plugin</module>
-        <module>cache-filebackedindex</module>
-        <module>common</module>
-    </modules>
-
-    <properties>
-        <maven.version>3.2.5</maven.version>
-        <httpclient.version>4.5.13</httpclient.version>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <doxia-sitetoolsVersion>1.11.1</doxia-sitetoolsVersion>
-    </properties>
 
     <dependencyManagement>
         <dependencies>
