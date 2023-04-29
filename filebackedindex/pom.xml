@@ -12,6 +12,10 @@
 
     <artifactId>filebackedindex</artifactId>
 
+    <name>File Backed Index</name>
+
+    <description>Legacy serialized index-based cache</description>
+
     <dependencies>
         <dependency>
             <groupId>com.googlecode.maven-downloadplugin</groupId>

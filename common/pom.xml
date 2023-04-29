@@ -12,6 +12,10 @@
 
     <artifactId>common</artifactId>
 
+    <name>Common</name>
+
+    <description>Common internal API</description>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.maven</groupId>
