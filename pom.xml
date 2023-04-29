@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>parent</module>
         <module>cache-serialized</module>
         <module>common</module>
     </modules>
