@@ -1,6 +1,9 @@
-package com.googlecode.download.maven.plugin.internal;
+package com.googlecode.download.maven.plugin;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.googlecode.download.maven.plugin.internal.DownloadFailureException;
+import com.googlecode.download.maven.plugin.internal.cache.CacheFactory;
+import com.googlecode.download.maven.plugin.internal.cache.FileBackedIndexCacheFactory;
 import org.apache.http.*;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.entity.StringEntity;
@@ -15,6 +18,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.logging.SystemStreamLog;
+import org.codehaus.plexus.archiver.manager.ArchiverManager;
 import org.codehaus.plexus.util.ReflectionUtils;
 import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.junit.After;
@@ -64,6 +68,7 @@ public class WGetMojoTest {
     private Path cacheDirectory;
     private final static String OUTPUT_FILE_NAME = "output-file";
     private Path outputDirectory;
+    private final static CacheFactory CACHE_FACTORY = new FileBackedIndexCacheFactory();
 
     @Before
     public void setUp() throws Exception {
@@ -88,9 +93,9 @@ public class WGetMojoTest {
     }
 
     private WGetMojo createMojo(Consumer<WGetMojo> initializer) {
-        WGetMojo mojo = new WGetMojo();
         BuildContext buildContext = mock(BuildContext.class);
         doNothing().when(buildContext).refresh(any(File.class));
+        WGetMojo mojo = new WGetMojo(buildContext, mock(ArchiverManager.class), CACHE_FACTORY);
 
         setVariableValueToObject(mojo, "outputFileName", OUTPUT_FILE_NAME);
         setVariableValueToObject(mojo, "outputDirectory", outputDirectory.toFile());
@@ -98,6 +103,7 @@ public class WGetMojoTest {
         setVariableValueToObject(mojo, "retries", 1);
         setVariableValueToObject(mojo, "buildContext", buildContext);
         setVariableValueToObject(mojo, "overwrite", true);
+        setVariableValueToObject(mojo, "cacheFactory", CACHE_FACTORY);
         try {
             setVariableValueToObject(mojo, "uri", new URI(
                     "http://test"));

@@ -12,8 +12,13 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package com.googlecode.download.maven.plugin.internal;
+package com.googlecode.download.maven.plugin;
 
+import com.googlecode.download.maven.plugin.internal.DownloadFailureException;
+import com.googlecode.download.maven.plugin.internal.HttpFileRequester;
+import com.googlecode.download.maven.plugin.internal.LoggingProgressReport;
+import com.googlecode.download.maven.plugin.internal.SilentProgressReport;
+import com.googlecode.download.maven.plugin.internal.cache.CacheFactory;
 import com.googlecode.download.maven.plugin.internal.checksum.Checksums;
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
@@ -39,6 +44,7 @@ import org.eclipse.aether.repository.RemoteRepository;
 import org.sonatype.plexus.build.incremental.BuildContext;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -230,15 +236,11 @@ public class WGetMojo extends AbstractMojo {
     @Parameter(property = "session", readonly = true)
     private MavenSession session;
 
-    @Inject
     private ArchiverManager archiverManager;
 
-    /**
-     * For transfers
-     */
-
-    @Inject
     private BuildContext buildContext;
+
+    private CacheFactory cacheFactory;
 
     /**
      * Runs the plugin only if the current project is the execution root.
@@ -273,6 +275,21 @@ public class WGetMojo extends AbstractMojo {
      */
     @Parameter(property = "preemptiveAuth", defaultValue = "false")
     private boolean preemptiveAuth;
+
+    /**
+     * Creates a new intance; typically called by the dependency injection framework.
+     * @param buildContext injected instance of {@link BuildContext}
+     * @param archiverManager injected instance of {@link ArchiverManager}
+     * @param cacheFactory injected instance of {@link CacheFactory}
+     */
+    @Inject
+    public WGetMojo(BuildContext buildContext,
+                    ArchiverManager archiverManager,
+                    @Named("fileBackedIndex") CacheFactory cacheFactory) {
+        this.buildContext = buildContext;
+        this.archiverManager = archiverManager;
+        this.cacheFactory = cacheFactory;
+    }
 
     /**
      * Method call when the mojo is executed for the first time.
@@ -493,6 +510,7 @@ public class WGetMojo extends AbstractMojo {
         }
 
         final HttpFileRequester fileRequester = fileRequesterBuilder
+                .withCacheFactory(this.cacheFactory)
                 .withProgressReport(this.session.getSettings().isInteractiveMode()
                         ? new LoggingProgressReport(this.getLog())
                         : new SilentProgressReport(this.getLog()))
