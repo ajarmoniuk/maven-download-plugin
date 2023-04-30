@@ -17,6 +17,82 @@
 
     <name>Download Maven Plugin Aggregate</name>
 
+    <!-- Distribution Management, see https://docs.sonatype.org/display/Repository/Sonatype+OSS+Maven+Repository+Usage+Guide
+    and http://maven.apache.org/wagon/wagon-providers/wagon-scm/usage.html -->
+    <distributionManagement>
+        <site>
+            <id>maven-download-plugin</id>
+            <url>scm:git:ssh://git@github.com/maven-download-plugin/maven-download-plugin.git</url>
+        </site>
+    </distributionManagement>
+
+    <!-- Miscellaneous build properties (SCM, license, issues, etc) -->
+    <description>This is a plugin meant to help maven user to download
+        different files on different protocol in part of maven build. For the
+        first implementation, there will only be a goal that will help
+        downloading a maven artifact from the command line. Future version of
+        the plugin could include web download, ftp download, scp download and
+        so on.
+    </description>
+
+    <url>https://github.com/maven-download-plugin/maven-download-plugin</url>
+
+    <developers>
+        <developer>
+            <id>mhoule</id>
+            <name>Marc-Andre Houle</name>
+            <timezone>-4</timezone>
+            <roles>
+                <role>developer</role>
+                <role>lead</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>mistria</id>
+            <name>Mickael Istria (Red Hat Inc.)</name>
+            <organization>JBoss, by Red Hat</organization>
+            <organizationUrl>http://www.jboss.org/tools</organizationUrl>
+            <timezone>+1</timezone>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <contributors>
+        <contributor>
+            <name>Paul Polishchuk</name>
+        </contributor>
+        <contributor>
+            <name>Andrzej Jarmoniuk</name>
+        </contributor>
+    </contributors>
+
+    <inceptionYear>2009</inceptionYear>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/maven-download-plugin/maven-download-plugin/issues</url>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>
+            scm:git:git://github.com/maven-download-plugin/maven-download-plugin.git
+        </connection>
+        <developerConnection>
+            scm:git:ssh://git@github.com/maven-download-plugin/maven-download-plugin.git
+        </developerConnection>
+        <url>https://github.com/maven-download-plugin/maven-download-plugin</url>
+    </scm>
+
     <modules>
         <module>download-maven-plugin</module>
         <module>filebackedindex</module>
