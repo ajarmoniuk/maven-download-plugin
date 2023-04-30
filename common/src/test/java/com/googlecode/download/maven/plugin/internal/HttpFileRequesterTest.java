@@ -1,21 +1,22 @@
 package com.googlecode.download.maven.plugin.internal;
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.googlecode.download.maven.plugin.internal.cache.CacheFactory;
 import org.apache.http.auth.AUTH;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.logging.SystemStreamLog;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.ArgumentMatchers;
 
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
+import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,13 +28,13 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link HttpFileRequester}
  *
  * @author Andrzej Jarmoniuk
  */
-@Ignore
 public class HttpFileRequesterTest {
     @Rule
     public TemporaryFolder outputDirectory = new TemporaryFolder();
@@ -42,10 +43,16 @@ public class HttpFileRequesterTest {
     private File outputFile;
     private final static Log LOG = new SystemStreamLog();
     private final static String OUTPUT_FILE_NAME = "output-file";
+    private static CacheFactory CACHE_FACTORY;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         this.outputFile = new File(this.outputDirectory.getRoot(), OUTPUT_FILE_NAME);
+    }
+
+    @BeforeClass
+    public static void setUpClass() throws NotDirectoryException {
+        CACHE_FACTORY = mock(CacheFactory.class);
     }
 
     private HttpFileRequester.Builder createFileRequesterBuilder() throws Exception {
@@ -57,6 +64,7 @@ public class HttpFileRequesterTest {
         }
 
         return new HttpFileRequester.Builder()
+                .withCacheFactory(CACHE_FACTORY)
                 .withProgressReport(new LoggingProgressReport(LOG))
                 .withConnectTimeout(3000)
                 .withSocketTimeout(3000)
