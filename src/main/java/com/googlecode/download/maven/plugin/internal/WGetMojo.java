@@ -157,7 +157,7 @@ public class WGetMojo extends AbstractMojo {
     /**
      * How many retries for a download
      */
-    @Parameter(defaultValue = "2")
+    @Parameter(property = "download.retries", defaultValue = "2")
     private int retries;
 
     /**
@@ -217,10 +217,12 @@ public class WGetMojo extends AbstractMojo {
     private boolean checkSignature;
 
     /**
-     * Whether to follow redirects (302)
+     * <p>Whether to follow redirects (301 Moved Permanently, 302 Found, 303 See Other).</p>
+     * <p>If this option is disabled and the returned resource returns a redirect, the plugin will report an error
+     * and exit unless {@link #failOnError} is {@code false}.</p>
      */
-    @Parameter(property = "download.plugin.followRedirects", defaultValue = "false")
-    private boolean followRedirects;
+    @Parameter(property = "download.plugin.followRedirects", defaultValue = "true")
+    private boolean followRedirects = true;
 
     /**
      * A list of additional HTTP headers to send with the request
@@ -322,11 +324,7 @@ public class WGetMojo extends AbstractMojo {
 
         // PREPARE
         if (this.outputFileName == null) {
-            try {
-                this.outputFileName = new File(this.uri.toURL().getPath()).getName();
-            } catch (Exception ex) {
-                throw new MojoExecutionException("Invalid URL", ex);
-            }
+            this.outputFileName = FileNameUtils.getOutputFileName(this.uri);
         }
         if (!this.skipCache) {
             if (this.cacheDirectory == null) {
@@ -398,24 +396,34 @@ public class WGetMojo extends AbstractMojo {
                     }
                 }
                 boolean done = false;
-                while (!done && this.retries > 0) {
+                for (int retriesLeft = this.retries; !done && retriesLeft > 0; --retriesLeft) {
                     try {
                         this.doGet(outputFile);
                         checksums.validate(outputFile);
                         done = true;
-                    } catch (IOException ex) {
-                        getLog().warn("Could not get content", ex);
-                        this.retries--;
-                        if (this.retries > 0) {
-                            getLog().warn("Retrying (" + this.retries + " more)");
+                    } catch (DownloadFailureException ex) {
+                        // treating HTTP codes >= 500 as transient and thus always retriable
+                        if (this.failOnError && ex.getHttpCode() < 500) {
+                            throw new MojoExecutionException(ex.getMessage(), ex);
+                        } else {
+                            getLog().warn(ex.getMessage());
                         }
+                    } catch (IOException ex) {
+                        if (this.failOnError) {
+                            throw new MojoExecutionException(ex.getMessage(), ex);
+                        } else {
+                            getLog().warn(ex.getMessage());
+                        }
+                    }
+                    if (!done) {
+                        getLog().warn("Retrying (" + (retriesLeft - 1) + " more)");
                     }
                 }
                 if (!done) {
                     if (this.failOnError) {
-                        throw new MojoFailureException("Could not get content");
+                        throw new MojoFailureException("Could not get content after " + this.retries + " failed attempts.");
                     } else {
-                        getLog().warn("Ignoring download failure.");
+                        getLog().warn("Ignoring download failure(s).");
                         return;
                     }
                 }
@@ -426,6 +434,8 @@ public class WGetMojo extends AbstractMojo {
             } else {
             	this.buildContext.refresh(outputFile);
             }
+        } catch (MojoExecutionException e) {
+            throw e;
         } catch (IOException ex) {
             throw new MojoExecutionException("IO Error: ", ex);
         } catch (NoSuchArchiverException e) {
@@ -438,7 +448,6 @@ public class WGetMojo extends AbstractMojo {
             }
         }
     }
-
 
     private void unpack(File outputFile) throws NoSuchArchiverException {
         UnArchiver unarchiver = this.archiverManager.getUnArchiver(outputFile);

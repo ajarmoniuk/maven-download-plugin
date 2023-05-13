@@ -8,6 +8,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.cache.CachingHttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestExecutor;
 import org.apache.maven.execution.MavenExecutionRequest;
@@ -30,6 +31,7 @@ import org.sonatype.plexus.build.incremental.BuildContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -43,11 +45,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static com.google.common.net.HttpHeaders.LOCATION;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -125,7 +129,7 @@ public class WGetMojoTest {
         return mojo;
     }
 
-    private static CachingHttpClientBuilder createClientBuilder(Supplier<String> contentSupplier) {
+    private static CachingHttpClientBuilder createClientBuilderForResponse(Supplier<HttpResponse> responseSupplier) {
         // mock client builder
         CachingHttpClientBuilder clientBuilder = CachingHttpClientBuilder.create();
         clientBuilder.setConnectionManager(new BasicHttpClientConnectionManager() {
@@ -135,15 +139,23 @@ public class WGetMojoTest {
         });
         clientBuilder.setRequestExecutor(new HttpRequestExecutor() {
             @Override
-            protected HttpResponse doSendRequest(HttpRequest request, HttpClientConnection conn, HttpContext context)
-                    throws IOException {
-                HttpResponse response = new BasicHttpResponse(HttpVersion.HTTP_1_1, HttpStatus.SC_OK, "Ok");
-                response.setEntity(new StringEntity(contentSupplier.get() + "\n"));
-                return response;
+            protected HttpResponse doSendRequest(HttpRequest request, HttpClientConnection conn, HttpContext context) {
+                return responseSupplier.get();
             }
         });
 
         return clientBuilder;
+    }
+
+    private static CachingHttpClientBuilder createClientBuilder(Supplier<String> contentSupplier) {
+        return createClientBuilderForResponse(() ->
+                new BasicHttpResponse(HttpVersion.HTTP_1_1, HttpStatus.SC_OK, "Ok") {{
+                    try {
+                        setEntity(new StringEntity(contentSupplier.get() + "\n"));
+                    } catch (UnsupportedEncodingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }});
     }
 
     /**
@@ -236,19 +248,19 @@ public class WGetMojoTest {
      */
     @Test
     public void testReadingFromCache() throws Exception {
-        CachingHttpClientBuilder clientBuilder = createClientBuilder(() -> "Hello, world!");
-
+        final CachingHttpClientBuilder firstAnswer = createClientBuilder(() -> "Hello, world!");
         // first mojo will get a cache miss
         try (MockedStatic<CachingHttpClientBuilder> httpClientBuilder = mockStatic(CachingHttpClientBuilder.class)) {
-            httpClientBuilder.when(CachingHttpClientBuilder::create).thenReturn(clientBuilder);
+            httpClientBuilder.when(CachingHttpClientBuilder::create).thenReturn(firstAnswer);
             createMojo(mojo -> {
             }).execute();
 
         }
 
-        // now, let's try to read that from cache
+        // now, let's try to read that from cache – we should get the response from cache and not from the resource
+        final CachingHttpClientBuilder secondAnswer = createClientBuilder(() -> "Goodbye!");
         try (MockedStatic<CachingHttpClientBuilder> httpClientBuilder = mockStatic(CachingHttpClientBuilder.class)) {
-            httpClientBuilder.when(CachingHttpClientBuilder::create).thenReturn(clientBuilder);
+            httpClientBuilder.when(CachingHttpClientBuilder::create).thenReturn(secondAnswer);
             createMojo(mojo -> setVariableValueToObject(mojo, "overwrite", true)).execute();
         }
 
@@ -554,7 +566,7 @@ public class WGetMojoTest {
 
     /**
      * Testing {@code alwaysVerifyChecksum} with an already existing file. The plugin, if provided the {@code md5},
-     * @code sha1}, {@code sha256}, {@code sha512} parameters, should verify if the signature <u>of the existing
+     * {@code sha1}, {@code sha256}, {@code sha512} parameters, should verify if the signature <u>of the existing
      * file</u> is correct.
      */
     @Test
@@ -589,7 +601,7 @@ public class WGetMojoTest {
 
     /**
      * Testing {@code alwaysVerifyChecksum} with an already existing file. The plugin, if provided the {@code md5},
-     * @code sha1}, {@code sha256}, {@code sha512} parameters, should log a warning message if the signature
+     * {@code sha1}, {@code sha256}, {@code sha512} parameters, should log a warning message if the signature
      * of the existing file is incorrect.
      */
     @Test
@@ -628,5 +640,172 @@ public class WGetMojoTest {
                 }
             }
         });
+    }
+
+    /**
+     * Plugin execution should fail if code &gt;= 400 was returned by the resource being downloaded.
+     * It should not repeat the query.
+     */
+    @Test
+    public void testBuildShouldFailIfDownloadFails() {
+        this.wireMock.stubFor(get(anyUrl()).willReturn(forbidden()));
+        try {
+            createMojo(m -> {
+                setVariableValueToObject(m, "uri", URI.create(wireMock.baseUrl()));
+                setVariableValueToObject(m, "skipCache", true);
+                setVariableValueToObject(m, "failOnError", true);
+            }).execute();
+            fail("The mojo should have failed upon error");
+        } catch (Exception e) {
+            assertThat(e, is(instanceOf(MojoExecutionException.class)));
+            assertThat(e.getCause(), is(instanceOf(DownloadFailureException.class)));
+            assertThat(((DownloadFailureException) e.getCause()).getHttpCode(), is(HttpStatus.SC_FORBIDDEN));
+            verify(1, getRequestedFor(anyUrl()));
+        }
+    }
+
+    /**
+     * Plugin execution should fail only after all retries have been exhausted
+     * if a 500+ code was returned by the resource being downloaded.
+     * It should repeat the query exactly 3 times.
+     */
+    @Test
+    public void testRetriedAfterDownloadFailsWithCode500() {
+        this.wireMock.stubFor(get(anyUrl()).willReturn(serverError()));
+        try {
+            createMojo(m -> {
+                setVariableValueToObject(m, "uri", URI.create(wireMock.baseUrl()));
+                setVariableValueToObject(m, "skipCache", true);
+                setVariableValueToObject(m, "failOnError", true);
+                setVariableValueToObject(m, "retries", 3);
+            }).execute();
+            fail("The mojo should have failed upon error");
+        } catch (Exception e) {
+            assertThat(e, is(instanceOf(MojoExecutionException.class)));
+            verify(3, getRequestedFor(anyUrl()));
+        }
+    }
+
+    /**
+     * Plugin should ignore a download failure if instructed to do so. It should not repeat the query.
+     */
+    @Test
+    public void testIgnoreDownloadFailure()
+            throws MojoExecutionException, MojoFailureException {
+        this.wireMock.stubFor(get(anyUrl()).willReturn(forbidden()));
+        try {
+            createMojo(m -> {
+                setVariableValueToObject(m, "uri", URI.create(wireMock.baseUrl()));
+                setVariableValueToObject(m, "skipCache", true);
+                setVariableValueToObject(m, "failOnError", false);
+            }).execute();
+            verify(1, getRequestedFor(anyUrl()));
+        } catch (MojoExecutionException e) {
+            if (e.getCause() instanceof DownloadFailureException) {
+                fail("Plugin should ignore a download failure");
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Plugin should not repeat if download succeeds.
+     */
+    @Test
+    public void testShouldNotRetrySuccessfulDownload() throws MojoExecutionException, MojoFailureException {
+        this.wireMock.stubFor(get(anyUrl()).willReturn(ok("Hello, world!\n")));
+        createMojo(m -> {
+            setVariableValueToObject(m, "uri", URI.create(wireMock.baseUrl()));
+            setVariableValueToObject(m, "skipCache", true);
+            setVariableValueToObject(m, "failOnError", true);
+            setVariableValueToObject(m, "retries", 3);
+        }).execute();
+        verify(1, getRequestedFor(anyUrl()));
+    }
+
+    /**
+     * Plugin should be able to cache large files
+     */
+    @Test
+    public void testShouldCacheLargeFiles() throws Exception {
+        // first mojo will get a cache miss, with a ridiculously large content length
+        final CachingHttpClientBuilder firstAnswer = createClientBuilderForResponse(() ->
+                new BasicHttpResponse(HttpVersion.HTTP_1_1, HttpStatus.SC_OK, "Ok") {{
+                    try {
+                        setEntity(new StringEntity("Hello, world!\n"));
+                        setHeader(HTTP.CONTENT_LEN, String.valueOf(Long.MAX_VALUE));
+                    } catch (UnsupportedEncodingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }});
+
+        try (MockedStatic<CachingHttpClientBuilder> httpClientBuilder = mockStatic(CachingHttpClientBuilder.class)) {
+            httpClientBuilder.when(CachingHttpClientBuilder::create).thenReturn(firstAnswer);
+            createMojo(mojo -> {}).execute();
+        }
+
+        // now, let's try to read that from cache – we should get the response from cache and not from the resource
+        final CachingHttpClientBuilder secondAnswer = createClientBuilder(() -> "Goodbye!");
+        try (MockedStatic<CachingHttpClientBuilder> httpClientBuilder = mockStatic(CachingHttpClientBuilder.class)) {
+            httpClientBuilder.when(CachingHttpClientBuilder::create).thenReturn(secondAnswer);
+            createMojo(mojo -> setVariableValueToObject(mojo, "overwrite", true)).execute();
+        }
+
+        // now, let's read that file
+        assertThat(String.join("", Files.readAllLines(outputDirectory.resolve(OUTPUT_FILE_NAME))),
+                is("Hello, world!"));
+    }
+
+    private void testRedirect(int code) {
+        this.wireMock.stubFor(get(urlEqualTo("/" + code))
+                .willReturn(aResponse().withStatus(code).withHeader(LOCATION, "/hello")));
+        this.wireMock.stubFor(get(urlEqualTo("/hello")).willReturn(ok("Hello, world!\n")));
+        try {
+            createMojo(m -> {
+                setVariableValueToObject(m, "uri", URI.create(wireMock.baseUrl() + "/" + code));
+                setVariableValueToObject(m, "skipCache", true);
+            }).execute();
+            assertThat(String.join("", Files.readAllLines(outputDirectory.resolve(OUTPUT_FILE_NAME))),
+                    is("Hello, world!"));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Plugin should follow redirects
+     */
+    @Test
+    public void testShouldFollowRedirects() {
+        IntStream.of(301, 302, 303).forEach(this::testRedirect);
+    }
+
+    private void testNoRedirects(int code) {
+        this.wireMock.stubFor(get(urlEqualTo("/" + code))
+                .willReturn(aResponse().withStatus(code).withHeader(LOCATION, "/hello")));
+        this.wireMock.stubFor(get(urlEqualTo("/hello")).willReturn(ok("Hello, world!\n")));
+        Log log = spy(SystemStreamLog.class);
+        StringBuilder loggedWarningMessages = new StringBuilder();
+        doAnswer(invocation -> loggedWarningMessages.append((CharSequence) invocation.getArgument(0)))
+                .when(log).warn(anyString());
+        try {
+            createMojo(m -> {
+                setVariableValueToObject(m, "log", log);
+                setVariableValueToObject(m, "followRedirects", false);
+                setVariableValueToObject(m, "uri", URI.create(wireMock.baseUrl() + "/" + code));
+                setVariableValueToObject(m, "skipCache", true);
+            }).execute();
+            assertThat(loggedWarningMessages.toString(), containsString("Download failed with code " + code));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Plugin should follow redirects
+     */
+    @Test
+    public void testShouldWarnOnRedirectsIfDisabled() {
+        IntStream.of(301, 302, 303).forEach(this::testNoRedirects);
     }
 }
