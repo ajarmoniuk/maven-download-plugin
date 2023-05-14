@@ -1,5 +1,7 @@
 package com.googlecode.download.maven.plugin.internal.cache;
 
+import com.googlecode.download.maven.plugin.internal.cache.filebackedindex.FileBackedIndex;
+
 /**
  * Thrown when {@link FileBackedIndex} fails to read an existing index.
  * <p>

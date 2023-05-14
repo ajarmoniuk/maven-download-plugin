@@ -1,6 +1,13 @@
-package com.googlecode.download.maven.plugin.internal.cache;
+package com.googlecode.download.maven.plugin.internal.cache.filebackedindex;
 
-import com.googlecode.download.maven.plugin.internal.cache.filebackedindex.FileBackedIndex;
+import com.googlecode.download.maven.plugin.internal.cache.FileIndexResource;
+import org.apache.commons.io.FileUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpStatus;
+import org.apache.http.HttpVersion;
+import org.apache.http.client.cache.HttpCacheEntry;
+import org.apache.http.message.BasicStatusLine;
+import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.Test;
 
 import java.net.URI;
@@ -60,10 +67,8 @@ public class FileBackedIndexTest {
         try (AutoCloseable ignored = new ClosablePath(path)){
             FileBackedIndex index = new FileBackedIndex(path, new SystemStreamLog());
             index.putEntry("foo://file.bin",
-                    new HttpCacheEntry(new Date(), new Date(),
-                            new BasicStatusLine(HttpVersion.HTTP_1_1,
-                                    HttpStatus.OK_200, "OK"), new Header[]{},
-                            new FileIndexResource(Paths.get("bogus"), path)));
+                    new HttpCacheEntry(new Date(), new Date(), new BasicStatusLine(HttpVersion.HTTP_1_1,
+                            HttpStatus.SC_OK, "OK"), new Header[]{}, new FileIndexResource(Paths.get("bogus"), path)));
             assertThat(index.getEntry("foo://file.bin"), is(nullValue()));
         }
     }
